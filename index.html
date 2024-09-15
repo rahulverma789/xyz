@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Responsive Picture with Description</title>
+    <title>Responsive Gallery with Descriptions</title>
     <style>
         * {
             margin: 0;
@@ -13,143 +13,125 @@
 
         body {
             font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background-color: #f4f4f4;
-            padding: 20px;
         }
 
-        .container {
+        .gallery-container {
             max-width: 1200px;
             width: 100%;
             background-color: white;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             overflow: hidden;
+            padding: 20px;
         }
 
-        .image-container {
-            width: 100%;
+        .gallery {
             display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
             justify-content: center;
-            align-items: center;
+        }
+
+        .gallery-item {
+            flex: 1 1 calc(33.33% - 40px); /* 3 columns */
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             overflow: hidden;
         }
 
-        .image-container img {
+        .gallery-item img {
             width: 100%;
             height: auto;
+            display: block;
         }
 
         .description {
-            padding: 20px;
+            padding: 15px;
             text-align: center;
         }
 
         .description h2 {
-            font-size: 24px;
+            font-size: 20px;
             margin-bottom: 10px;
         }
 
         .description p {
-            font-size: 18px;
+            font-size: 16px;
             line-height: 1.6;
             color: #666;
         }
 
         /* Media Query for tablets */
         @media (max-width: 768px) {
-            .description h2 {
-                font-size: 22px;
+            .gallery-item {
+                flex: 1 1 calc(50% - 40px); /* 2 columns */
             }
 
-            .description p {
-                font-size: 16px;
-            }
-        }
-
-        /* Media Query for mobile phones */
-        @media (max-width: 480px) {
             .description h2 {
-                font-size: 20px;
+                font-size: 18px;
             }
 
             .description p {
                 font-size: 14px;
             }
         }
+
+        /* Media Query for mobile phones */
+        @media (max-width: 480px) {
+            .gallery-item {
+                flex: 1 1 100%; /* 1 column */
+            }
+
+            .description h2 {
+                font-size: 16px;
+            }
+
+            .description p {
+                font-size: 13px;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="image-container">
-            <img src="https://via.placeholder.com/1200x600" alt="Sample Image">
-        </div>
-        <div class="description">
-            <p>
-                This is a text.
-            </p>
-        </div>
-    </div>
-
-        <div class="container">
-        <div class="image-container">
-            <img src="https://via.placeholder.com/1200x600" alt="Sample Image">
-        </div>
-        <div class="description">
-            <p>
-                This is a text.
-            </p>
-        </div>
-    </div>
-
-        <div class="container">
-        <div class="image-container">
-            <img src="https://via.placeholder.com/1200x600" alt="Sample Image">
-        </div>
-        <div class="description">
-            <p>
-                This is a text.
-            </p>
-        </div>
-    </div>
-
-        <div class="container">
-        <div class="image-container">
-            <img src="https://via.placeholder.com/1200x600" alt="Sample Image">
-        </div>
-        <div class="description">
-            <p>
-                This is a text.
-            </p>
+    <div class="gallery-container">
+        <div class="gallery">
+            <!-- Image 1 -->
+            <div class="gallery-item">
+                <img src="https://via.placeholder.com/400x300" alt="Sample Image 1">
+                <div class="description">
+                    <h2>Beautiful Scenery 1</h2>
+                    <p>This is a description of the first beautiful scenery.</p>
+                </div>
+            </div>
+            
+            <!-- Image 2 -->
+            <div class="gallery-item">
+                <img src="https://via.placeholder.com/400x300" alt="Sample Image 2">
+                <div class="description">
+                    <h2>Beautiful Scenery 2</h2>
+                    <p>This is a description of the second beautiful scenery.</p>
+                </div>
+            </div>
+            
+            <!-- Image 3 -->
+            <div class="gallery-item">
+                <img src="https://via.placeholder.com/400x300" alt="Sample Image 3">
+                <div class="description">
+                    <h2>Beautiful Scenery 3</h2>
+                    <p>This is a description of the third beautiful scenery.</p>
+                </div>
+            </div>
+            
+            <!-- Add more images as needed -->
         </div>
     </div>
-
-
-        <div class="container">
-        <div class="image-container">
-            <img src="https://via.placeholder.com/1200x600" alt="Sample Image">
-        </div>
-        <div class="description">
-            <p>
-                This is a text.
-            </p>
-        </div>
-    </div>
-
-
-        <div class="container">
-        <div class="image-container">
-            <img src="https://via.placeholder.com/1200x600" alt="Sample Image">
-        </div>
-        <div class="description">
-            <p>
-                This is a text.
-            </p>
-        </div>
-    </div>
-    
 </body>
 </html>
+
