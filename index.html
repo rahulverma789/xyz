@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Picture with Description</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .image-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .image-container img {
+            width: 100%;
+            height: auto;
+        }
+
+        .description {
+            padding: 20px;
+            text-align: center;
+        }
+
+        .description h2 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .description p {
+            font-size: 18px;
+            line-height: 1.6;
+            color: #666;
+        }
+
+        /* Media Query for tablets */
+        @media (max-width: 768px) {
+            .description h2 {
+                font-size: 22px;
+            }
+
+            .description p {
+                font-size: 16px;
+            }
+        }
+
+        /* Media Query for mobile phones */
+        @media (max-width: 480px) {
+            .description h2 {
+                font-size: 20px;
+            }
+
+            .description p {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="image-container">
+            <img src="https://via.placeholder.com/1200x600" alt="Sample Image">
+        </div>
+        <div class="description">
+            <h2>Beautiful Scenery</h2>
+            <p>
+                This is a beautiful landscape showing mountains, a lake, and lush greenery. The scene captures the beauty of nature at its best, offering a calming and peaceful atmosphere.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
