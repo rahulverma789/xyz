@@ -61,7 +61,7 @@ def calculator():
             try:
                 result = num1 / num2
             except ZeroDivisionError as error:
-                result = str(error)
+                result = type(error).__name__ + " : " + str(error)
         elif operator == "%":
             result = num1 % num2
         elif operator == "**":
