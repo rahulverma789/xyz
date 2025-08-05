@@ -1041,16 +1041,43 @@
         // ===========================================
         // API FUNCTIONS
         // ===========================================
-        async function fetchMovies(endpoint, page = 1) {
+        function buildApiUrl(endpoint, page = 1, additionalParams = {}) {
+            const baseUrl = 'http://127.0.0.1:8000';
+            const params = new URLSearchParams();
+            
+            // Add common filters
+            if (userProfile.safe_mode) {
+                params.set('safe_mode', 'true');
+            }
+            
+            if (userProfile.language && userProfile.language.length > 0) {
+                params.set('languages', userProfile.language.join(','));
+            }
+            
+            params.set('limit', '10');
+            
+            // Add any additional parameters
+            Object.entries(additionalParams).forEach(([key, value]) => {
+                if (value !== null && value !== undefined && value !== '') {
+                    params.set(key, value);
+                }
+            });
+            
+            return `${baseUrl}/${endpoint}?${params.toString()}`;
+        }
+
+        async function fetchMovies(endpoint, page = 1, filters = {}) {
             try {
                 let apiUrl;
+                
                 if (endpoint === 'trending/movie/day') {
-                    apiUrl = `http://127.0.0.1:8000/trending?page=${page}`;
+                    apiUrl = buildApiUrl('trending', page, filters);
                 } else if (endpoint === 'movie/top_rated') {
-                    apiUrl = `http://127.0.0.1:8000/top-rated?page=${page}`;
+                    apiUrl = buildApiUrl('top-rated', page, filters);
                 } else if (endpoint === 'movie/now_playing') {
-                    apiUrl = `http://127.0.0.1:8000/now-playing?page=${page}`;
+                    apiUrl = buildApiUrl('now-playing', page, filters);
                 } else {
+                    // Fallback to TMDB for other endpoints
                     apiUrl = `${TMDB_BASE_URL}/${endpoint}?api_key=${TMDB_API_KEY}&language=en-US&page=${page}&region=${userProfile.region}`;
                 }
                 
@@ -1060,6 +1087,38 @@
                 return Array.isArray(data) ? data : data.results || [];
             } catch (error) {
                 console.error('Error fetching movies:', error);
+                return [];
+            }
+        }
+
+        async function fetchPersonalizedRecommendations() {
+            try {
+                const response = await fetch('http://127.0.0.1:8000/personalized-recommendations', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        user_id: userProfile.user_id,
+                        age: userProfile.age,
+                        safe_mode: userProfile.safe_mode,
+                        language: userProfile.language,
+                        mood: userProfile.mood,
+                        region: userProfile.region,
+                        watchlist: userProfile.watchlist.map(m => m.id || m),
+                        history: userProfile.history,
+                        liked_movies: userProfile.liked_movies,
+                        disliked_movies: userProfile.disliked_movies
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return Array.isArray(data) ? data : [];
+                }
+                return [];
+            } catch (error) {
+                console.error('Error fetching personalized recommendations:', error);
                 return [];
             }
         }
@@ -1106,7 +1165,21 @@
 
         async function getRecommendations(movieId) {
             try {
-                const response = await fetch(`http://127.0.0.1:8000/recommendations?movie_id=${movieId}`);
+                const params = new URLSearchParams();
+                params.set('movie_id', movieId);
+                
+                // Add user filters
+                if (userProfile.safe_mode) {
+                    params.set('safe_mode', 'true');
+                }
+                
+                if (userProfile.language && userProfile.language.length > 0) {
+                    params.set('languages', userProfile.language.join(','));
+                }
+                
+                params.set('limit', '10');
+                
+                const response = await fetch(`http://127.0.0.1:8000/recommendations?${params.toString()}`);
                 const data = await response.json();
                 return Array.isArray(data) ? data : [];
             } catch (error) {
@@ -1434,16 +1507,30 @@
                 const genreFilter = document.getElementById('genre-filter').value;
                 const languageFilter = document.getElementById('language-filter').value;
                 
-                const response = await fetch(`http://127.0.0.1:8000/search?query=${encodeURIComponent(query)}`);
-                let results = await response.json();
-
+                // Build search URL with filters
+                const params = new URLSearchParams();
+                params.set('query', query);
+                
+                if (userProfile.safe_mode) {
+                    params.set('safe_mode', 'true');
+                }
+                
+                if (userProfile.language && userProfile.language.length > 0) {
+                    params.set('languages', userProfile.language.join(','));
+                }
+                
                 if (genreFilter) {
-                    results = results.filter(movie => movie.genre_ids && movie.genre_ids.includes(parseInt(genreFilter)));
+                    params.set('genres', genreFilter);
                 }
                 
                 if (languageFilter) {
-                    results = results.filter(movie => movie.original_language === languageFilter);
+                    params.set('languages', languageFilter);
                 }
+                
+                params.set('limit', '10');
+                
+                const response = await fetch(`http://127.0.0.1:8000/search?${params.toString()}`);
+                let results = await response.json();
 
                 const searchSection = document.getElementById('search-results');
                 const recommendationsSection = document.getElementById('recommendations');
@@ -1481,6 +1568,31 @@
             displayMovies(trending, 'trending-movies', true);
             displayMovies(topRated, 'toprated-movies');
             displayMovies(nowPlaying, 'nowplaying-movies');
+            
+            // Load personalized recommendations
+            await loadPersonalizedRecommendations();
+        }
+
+        async function loadPersonalizedRecommendations() {
+            try {
+                const recommendedMovies = await fetchPersonalizedRecommendations();
+                const container = document.getElementById('user-recommendation-movies');
+                
+                if (recommendedMovies.length > 0) {
+                    await displayMovies(recommendedMovies, 'user-recommendation-movies');
+                } else {
+                    // Show default message if no recommendations
+                    container.innerHTML = `
+                        <div class="text-center py-12 text-gray-400">
+                            <i data-lucide="heart" class="w-16 h-16 mx-auto mb-4"></i>
+                            <p>Watch more movies to get personalized recommendations</p>
+                        </div>
+                    `;
+                    lucide.createIcons();
+                }
+            } catch (error) {
+                console.error('Error loading personalized recommendations:', error);
+            }
         }
 
         async function loadMore(section) {
@@ -1562,6 +1674,9 @@
             updateUI();
             document.getElementById('profile-modal').classList.add('hidden');
             showToast('Profile saved successfully!', 'success');
+            
+            // Reload personalized recommendations with updated profile
+            await loadPersonalizedRecommendations();
         }
 
         function handleProfilePicUpload(event) {
