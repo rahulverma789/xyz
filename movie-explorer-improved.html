@@ -66,6 +66,37 @@
             max-height: 280px;
         }
 
+        /* Poster Details Button */
+        .poster-details-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.9);
+            color: #1f2937;
+            border: none;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .movie-card .poster-container:hover .poster-details-btn {
+            opacity: 1;
+        }
+        
+        .poster-details-btn:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: translate(-50%, -50%) scale(1.1);
+        }
+
         .trending-number {
             position: absolute;
             top: 0;
@@ -1119,46 +1150,45 @@
         // ===========================================
         // MOVIE CARD FUNCTIONS
         // ===========================================
-        function createMovieCard(movie, showTrendingNumber = false, trendingIndex = 0) {
-            const isInWatchlist = watchlist.some(item => item.id === movie.id);
-            const genres = movie.genre_ids ? movie.genre_ids.map(id => genreMap[id]).filter(Boolean).slice(0, 2) : [];
-            
-            return `
-                <div class="movie-card bg-gray-800/30 rounded-2xl p-4 hover:bg-gray-800/50 transition-all group relative flex flex-col h-full">
-                    ${showTrendingNumber ? `<div class="trending-number">${trendingIndex + 1}</div>` : ''}
-                    <div class="aspect-[2/3] w-full rounded-xl overflow-hidden mb-4 cursor-pointer" onclick="showMovieDetail(${movie.id})">
-                        <img src="${getPosterUrl(movie.poster_path)}" alt="${movie.title}" 
-                            class="w-full h-full object-cover rounded-xl transition-transform group-hover:scale-110" />
-                    </div>
-                    <h3 class="font-semibold text-sm mb-2 line-clamp-1 cursor-pointer" title="${movie.title}" onclick="showMovieDetail(${movie.id})">${movie.title}</h3>
-                    <div class="flex items-center justify-between text-xs text-gray-400 mb-3">
-                        <span class="flex items-center">
-                            <i data-lucide="star" class="w-3 h-3 mr-1 text-yellow-400"></i>
-                            ${movie.vote_average ? movie.vote_average.toFixed(1) : 'N/A'}
-                        </span>
-                        <span>${movie.release_date ? new Date(movie.release_date).getFullYear() : 'TBA'}</span>
-                    </div>
-                    ${genres.length > 0 ? `<div class="flex flex-wrap gap-1 mb-3">
-                        ${genres.map(genre => `<span class="px-2 py-1 bg-purple-500/20 text-purple-300 text-xs rounded-full">${genre}</span>`).join('')}
-                    </div>` : ''}
-                    <div class="space-y-2 mt-auto">
-                        <button onclick="showMovieDetail(${movie.id})" class="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium text-white transition-colors flex items-center justify-center">
-                            <i data-lucide="info" class="w-4 h-4 mr-2"></i>
-                            Details
-                        </button>
-                        <button data-movie-id="${movie.id}" onclick="toggleWatchlist(${JSON.stringify(movie).replace(/"/g, '&quot;')})" 
-                                class="watchlist-btn w-full py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center ${
-                                    isInWatchlist 
-                                        ? 'bg-green-600 hover:bg-green-700 text-white' 
-                                        : 'bg-purple-600 hover:bg-purple-700 text-white'
-                                }">
-                            <i data-lucide="${isInWatchlist ? 'check' : 'plus'}" class="w-4 h-4 mr-2"></i>
-                            ${isInWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
+                 function createMovieCard(movie, showTrendingNumber = false, trendingIndex = 0) {
+             const isInWatchlist = watchlist.some(item => item.id === movie.id);
+             const genres = movie.genre_ids ? movie.genre_ids.map(id => genreMap[id]).filter(Boolean).slice(0, 2) : [];
+             
+             return `
+                 <div class="movie-card bg-gray-800/30 rounded-2xl p-4 hover:bg-gray-800/50 transition-all group relative flex flex-col h-full">
+                     ${showTrendingNumber ? `<div class="trending-number">${trendingIndex + 1}</div>` : ''}
+                     <div class="poster-container aspect-[2/3] w-full rounded-xl overflow-hidden mb-4 relative">
+                         <img src="${getPosterUrl(movie.poster_path)}" alt="${movie.title}" 
+                             class="w-full h-full object-cover rounded-xl transition-transform group-hover:scale-110" />
+                         <button class="poster-details-btn" onclick="showMovieDetail(${movie.id})">
+                             <i data-lucide="info" class="w-5 h-5"></i>
+                         </button>
+                     </div>
+                     <h3 class="font-semibold text-sm mb-2 line-clamp-1 cursor-pointer" title="${movie.title}" onclick="showMovieDetail(${movie.id})">${movie.title}</h3>
+                     <div class="flex items-center justify-between text-xs text-gray-400 mb-3">
+                         <span class="flex items-center">
+                             <i data-lucide="star" class="w-3 h-3 mr-1 text-yellow-400"></i>
+                             ${movie.vote_average ? movie.vote_average.toFixed(1) : 'N/A'}
+                         </span>
+                         <span>${movie.release_date ? new Date(movie.release_date).getFullYear() : 'TBA'}</span>
+                     </div>
+                     ${genres.length > 0 ? `<div class="flex flex-wrap gap-1 mb-3">
+                         ${genres.map(genre => `<span class="px-2 py-1 bg-purple-500/20 text-purple-300 text-xs rounded-full">${genre}</span>`).join('')}
+                     </div>` : ''}
+                     <div class="space-y-2 mt-auto">
+                         <button data-movie-id="${movie.id}" onclick="toggleWatchlist(${JSON.stringify(movie).replace(/"/g, '&quot;')})" 
+                                 class="watchlist-btn w-full py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center ${
+                                     isInWatchlist 
+                                         ? 'bg-green-600 hover:bg-green-700 text-white' 
+                                         : 'bg-purple-600 hover:bg-purple-700 text-white'
+                                 }">
+                             <i data-lucide="${isInWatchlist ? 'check' : 'plus'}" class="w-4 h-4 mr-2"></i>
+                             ${isInWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
+                         </button>
+                     </div>
+                 </div>
+             `;
+         }
 
         // ===========================================
         // MOVIE DETAIL FUNCTIONS
@@ -1640,15 +1670,19 @@
                 });
             });
 
-            // Mood popup
-            document.querySelectorAll('.mood-popup-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    userProfile.mood = btn.dataset.mood;
-                    userProfile.last_mood_update = new Date();
-                    saveUserProfile();
-                    document.getElementById('mood-popup').classList.add('hidden');
-                });
-            });
+                         // Mood popup
+             document.querySelectorAll('.mood-popup-btn').forEach(btn => {
+                 btn.addEventListener('click', () => {
+                     userProfile.mood = btn.dataset.mood;
+                     userProfile.last_mood_update = new Date();
+                     saveUserProfile();
+                     
+                     // Update the mood selection in the profile section
+                     updateMoodSelection();
+                     
+                     document.getElementById('mood-popup').classList.add('hidden');
+                 });
+             });
 
             document.getElementById('skip-mood').addEventListener('click', () => {
                 userProfile.last_mood_update = new Date();
