@@ -166,7 +166,11 @@ def get_filtered_movies(base_df, sort_by='popularity_norm', genres=None, languag
     if sort_by in filtered_df.columns:
         filtered_df = filtered_df.sort_values(sort_by, ascending=False)
     
-    return filtered_df.head(limit)
+    # Convert to regular int indices to avoid float16 issues
+    result_df = filtered_df.head(limit).copy()
+    result_df.index = range(len(result_df))
+    
+    return result_df
 
 # Root endpoint
 @app.get("/")
@@ -323,34 +327,39 @@ def get_personalized_recommendations(profile: UserProfile):
                 # Get embeddings for user's movies
                 user_movie_indices = []
                 for movie_id in user_movies:
-                    movie_idx = movies_df[movies_df['id'] == movie_id].index
-                    if not movie_idx.empty:
-                        user_movie_indices.append(movie_idx[0])
+                    movie_rows = movies_df[movies_df['id'] == movie_id]
+                    if len(movie_rows) > 0:
+                        user_movie_indices.append(movie_rows.index[0])
                 
                 if user_movie_indices:
                     # Calculate average embedding
                     user_embeddings = movie_embeddings[user_movie_indices]
                     avg_embedding = np.mean(user_embeddings, axis=0).reshape(1, -1)
                     
-                    # Get filtered movie indices
-                    filtered_indices = filtered_df.index.tolist()
-                    filtered_embeddings = movie_embeddings[filtered_indices]
+                    # Get filtered movie indices (use original indices)
+                    filtered_original_indices = []
+                    for _, row in filtered_df.iterrows():
+                        original_idx = movies_df[movies_df['id'] == row['id']].index[0]
+                        filtered_original_indices.append(original_idx)
                     
-                    # Compute similarities
-                    similarities = cosine_similarity(avg_embedding, filtered_embeddings)[0]
-                    
-                    # Remove already seen movies
-                    for i, idx in enumerate(filtered_indices):
-                        movie_id = movies_df.iloc[idx]['id']
-                        if movie_id in user_movies or movie_id in profile.disliked_movies:
-                            similarities[i] = -1
-                    
-                    # Get top recommendations
-                    top_indices = similarities.argsort()[::-1][:15]
-                    recommended_indices = [filtered_indices[i] for i in top_indices if similarities[i] > -1]
-                    
-                    for idx in recommended_indices[:8]:
-                        recommendations.append(movies_df.iloc[idx].to_dict())
+                    if filtered_original_indices:
+                        filtered_embeddings = movie_embeddings[filtered_original_indices]
+                        
+                        # Compute similarities
+                        similarities = cosine_similarity(avg_embedding, filtered_embeddings)[0]
+                        
+                        # Remove already seen movies
+                        for i, orig_idx in enumerate(filtered_original_indices):
+                            movie_id = movies_df.iloc[orig_idx]['id']
+                            if movie_id in user_movies or movie_id in profile.disliked_movies:
+                                similarities[i] = -1
+                        
+                        # Get top recommendations
+                        top_indices = similarities.argsort()[::-1][:15]
+                        recommended_indices = [filtered_original_indices[i] for i in top_indices if similarities[i] > -1]
+                        
+                        for idx in recommended_indices[:8]:
+                            recommendations.append(movies_df.iloc[idx].to_dict())
         
         # Method 2: Mood-based recommendations
         if mood_genres and len(recommendations) < 10:
@@ -460,51 +469,7 @@ def get_top_rated_movies(
         logging.exception("Error in /top-rated")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
-@app.get("/now-playing")
-def get_now_playing_movies(
-    genres: Optional[str] = Query(None),
-    languages: Optional[str] = Query(None),
-    safe_mode: bool = Query(True),
-    limit: int = Query(10)
-):
-    try:
-        # Parse filters
-        genre_list = genres.split(',') if genres else None
-        language_list = languages.split(',') if languages else None
-        
-        # Apply filters
-        filtered_df = apply_filters(movies_df, genre_list, language_list, safe_mode)
-        
-        if filtered_df.empty:
-            return JSONResponse(content=[])
-        
-        # Sort by release date (most recent first) and popularity
-        current_year = pd.Timestamp.now().year
-        filtered_df['release_year'] = pd.to_datetime(filtered_df['release_date'], errors='coerce').dt.year
-        recent_movies = filtered_df[
-            (filtered_df['release_year'] >= current_year - 2) & 
-            (filtered_df['release_year'] <= current_year)
-        ].sort_values(['release_year', 'popularity_norm'], ascending=[False, False])
-        
-        # If not enough recent movies, fill with popular ones
-        if len(recent_movies) < limit:
-            older_popular = filtered_df[
-                ~filtered_df['id'].isin(recent_movies['id'])
-            ].sort_values('popularity_norm', ascending=False)
-            
-            needed = limit - len(recent_movies)
-            now_playing = pd.concat([recent_movies, older_popular.head(needed)])
-        else:
-            now_playing = recent_movies.head(limit)
-        
-        enriched_results = []
-        for _, row in now_playing.iterrows():
-            enriched_results.append(enrich_movie_data(row))
-
-        return JSONResponse(content=enriched_results)
-    except Exception as e:
-        logging.exception("Error in /now-playing")
-        return JSONResponse(status_code=500, content={"error": str(e)})
+# Now-playing endpoint removed as requested
 
 if __name__ == "__main__":
     import uvicorn
