@@ -110,9 +110,9 @@ def enrich_movie_data(movie_row):
     tmdb_data = get_tmdb_data_cached(int(movie_row["id"]))
     
     # Add poster path
+    poster_path = tmdb_data.get('poster_path')
     movie["poster_path"] = (
-        tmdb_data.get('poster_path')
-        if tmdb_data.get("poster_path") else None
+        f"{IMAGE_BASE_URL}{poster_path}" if poster_path else None
     )
     
     # Add vote average
@@ -149,6 +149,24 @@ def get_mood_based_genres(mood):
         "mysterious": ["Mystery", "Thriller", "Horror", "Crime"]
     }
     return mood_genre_map.get(mood, [])
+
+def get_filtered_movies(base_df, sort_by='popularity_norm', genres=None, languages=None, safe_mode=True, limit=10, exclude_ids=None):
+    """Get filtered movies with smart pagination to ensure we get the required count"""
+    if exclude_ids is None:
+        exclude_ids = []
+    
+    # Apply basic filters
+    filtered_df = apply_filters(base_df, genres, languages, safe_mode)
+    
+    # Exclude specific movie IDs
+    if exclude_ids:
+        filtered_df = filtered_df[~filtered_df['id'].isin(exclude_ids)]
+    
+    # Sort by the specified column
+    if sort_by in filtered_df.columns:
+        filtered_df = filtered_df.sort_values(sort_by, ascending=False)
+    
+    return filtered_df.head(limit)
 
 # Root endpoint
 @app.get("/")
@@ -331,10 +349,11 @@ def get_personalized_recommendations(profile: UserProfile):
                     top_indices = similarities.argsort()[::-1][:15]
                     recommended_indices = [filtered_indices[i] for i in top_indices if similarities[i] > -1]
                     
-                    recommendations.extend(movies_df.iloc[recommended_indices[:8]])
+                    for idx in recommended_indices[:8]:
+                        recommendations.append(movies_df.iloc[idx].to_dict())
         
         # Method 2: Mood-based recommendations
-        if mood_genres:
+        if mood_genres and len(recommendations) < 10:
             mood_filtered = filtered_df[
                 filtered_df['genres'].apply(
                     lambda x: any(genre.lower() in str(x).lower() for genre in mood_genres) if pd.notna(x) else False
@@ -349,17 +368,20 @@ def get_personalized_recommendations(profile: UserProfile):
                 
                 # Sort by rating and popularity
                 mood_sorted = mood_filtered.sort_values(['vote_average_5', 'popularity_norm'], ascending=False)
-                recommendations.extend(mood_sorted.head(5).to_dict('records'))
+                needed = min(5, 10 - len(recommendations))
+                for _, row in mood_sorted.head(needed).iterrows():
+                    recommendations.append(row.to_dict())
         
         # Method 3: Popular movies as fallback
         if len(recommendations) < 10:
             popular_movies = filtered_df.sort_values('popularity_norm', ascending=False)
-            existing_ids = [m['id'] if isinstance(m, dict) else m.get('id', m['id']) for m in recommendations]
+            existing_ids = [m['id'] for m in recommendations]
             popular_movies = popular_movies[~popular_movies['id'].isin(existing_ids)]
             popular_movies = popular_movies[~popular_movies['id'].isin(profile.disliked_movies)]
             
             needed = 10 - len(recommendations)
-            recommendations.extend(popular_movies.head(needed).to_dict('records'))
+            for _, row in popular_movies.head(needed).iterrows():
+                recommendations.append(row.to_dict())
         
         # Enrich and format results
         enriched_results = []
@@ -388,13 +410,15 @@ def get_trending_movies(
         genre_list = genres.split(',') if genres else None
         language_list = languages.split(',') if languages else None
         
-        # Apply filters
-        filtered_df = apply_filters(movies_df, genre_list, language_list, safe_mode)
-        
-        if filtered_df.empty:
-            return JSONResponse(content=[])
-        
-        trending = filtered_df.sort_values("popularity_norm", ascending=False).head(limit)
+        # Get filtered movies with smart pagination
+        trending = get_filtered_movies(
+            movies_df, 
+            sort_by="popularity_norm",
+            genres=genre_list, 
+            languages=language_list, 
+            safe_mode=safe_mode,
+            limit=limit
+        )
         
         enriched_results = []
         for _, row in trending.iterrows():
@@ -417,13 +441,15 @@ def get_top_rated_movies(
         genre_list = genres.split(',') if genres else None
         language_list = languages.split(',') if languages else None
         
-        # Apply filters
-        filtered_df = apply_filters(movies_df, genre_list, language_list, safe_mode)
-        
-        if filtered_df.empty:
-            return JSONResponse(content=[])
-        
-        top_rated = filtered_df.sort_values("vote_average_5", ascending=False).head(limit)
+        # Get filtered movies with smart pagination
+        top_rated = get_filtered_movies(
+            movies_df, 
+            sort_by="vote_average_5",
+            genres=genre_list, 
+            languages=language_list, 
+            safe_mode=safe_mode,
+            limit=limit
+        )
         
         enriched_results = []
         for _, row in top_rated.iterrows():
